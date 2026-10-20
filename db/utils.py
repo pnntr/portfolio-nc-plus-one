@@ -1,6 +1,9 @@
 import asyncio
 import json
 from contextlib import asynccontextmanager
+from datetime import UTC
+from datetime import datetime as dt
+from datetime import timezone
 
 import asyncpg
 from dotenv import dotenv_values
@@ -94,10 +97,41 @@ async def seed_venues(conn: asyncpg.Connection):
     )
 
 
+async def seed_events(conn: asyncpg.Connection):
+    events = [
+        (
+            row["title"],
+            row["description"],
+            dt.fromisoformat(row["starts_at"]).replace(tzinfo=None),
+            dt.fromisoformat(row["ends_at"]).replace(tzinfo=None),
+            row["organiser_id"],
+            row["venue_id"],
+        )
+        for row in from_json("db/data/events.json")
+    ]
+    await conn.execute(CREATE_EVENTS_TABLE)
+    await conn.executemany(
+        "INSERT INTO events (title, description, starts_at, ends_at, organiser_id, venue_id) VALUES ($1, $2, $3, $4, $5, $6)",
+        events,
+    )
+
+
+async def seed_rsvps(conn: asyncpg.Connection):
+    rsvps = [
+        (row["attendee_id"], row["event_id"]) for row in from_json("db/data/rsvps.json")
+    ]
+    await conn.execute(CREATE_RSVPS_TABLE)
+    await conn.executemany(
+        "INSERT INTO rsvps (attendee_id, event_id) VALUES ($1, $2)", rsvps
+    )
+
+
 async def seed_data():
     async with ConnectToDB() as conn:
         await seed_users(conn)
         await seed_venues(conn)
+        await seed_events(conn)
+        await seed_rsvps(conn)
 
 
 asyncio.run(seed_data())
