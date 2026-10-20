@@ -1,9 +1,56 @@
+import asyncio
+import json
 from contextlib import asynccontextmanager
 
 import asyncpg
 from dotenv import dotenv_values
 
 DATABASE_NAME = dotenv_values(".env")["DATABASE_NAME"]
+
+CREATE_USER_TABLE = """
+DROP TABLE IF EXISTS users CASCADE;
+CREATE TABLE users (
+	user_id SERIAL PRIMARY KEY,
+	email VARCHAR(255) UNIQUE NOT NULL,
+	password VARCHAR(255) NOT NULL,
+	name VARCHAR(255) NOT NULL,
+	created_at TIMESTAMP DEFAULT NOW()
+);
+"""
+
+CREATE_VENUES_TABLE = """
+DROP TABLE IF EXISTS venues CASCADE;
+CREATE TABLE venues (
+	venue_id SERIAL PRIMARY KEY,
+	name VARCHAR(255) NOT NULL,
+	address TEXT,
+	capacity INT
+);
+"""
+
+CREATE_EVENTS_TABLE = """
+DROP TABLE IF EXISTS events CASCADE;
+CREATE TABLE events (
+	event_id SERIAL PRIMARY KEY,
+	title VARCHAR(255) NOT NULL,
+	description VARCHAR(255),
+	starts_at TIMESTAMP NOT NULL,
+	ends_at TIMESTAMP NOT NULL,
+	organiser_id INT REFERENCES users(user_id),
+	venue_id INT REFERENCES venues(venue_id),
+	created_at TIMESTAMP DEFAULT NOW()
+);
+"""
+
+CREATE_RSVPS_TABLE = """
+DROP TABLE IF EXISTS rsvps CASCADE;
+CREATE TABLE rsvps (
+	rsvp_id SERIAL PRIMARY KEY,
+	attendee_id INT REFERENCES users(user_id),
+	event_id INT REFERENCES events(event_id),
+	created_at TIMESTAMP DEFAULT NOW()
+);
+"""
 
 
 class ConnectToDB:
@@ -18,3 +65,39 @@ class ConnectToDB:
     async def __aexit__(self, exc_type, exc, tb):
         assert self.conn is not None
         await self.conn.close()
+
+
+def from_json(filename: str):
+    with open(filename, "r") as f:
+        return json.load(f)
+
+
+async def seed_users(conn: asyncpg.Connection):
+    users = [
+        (row["name"], row["email"], row["password"])
+        for row in from_json("db/data/users.json")
+    ]
+    await conn.execute(CREATE_USER_TABLE)
+    await conn.executemany(
+        "INSERT INTO users (name, email, password) VALUES($1, $2, $3)", users
+    )
+
+
+async def seed_venues(conn: asyncpg.Connection):
+    venues = [
+        (row["name"], row["address"], row["capacity"])
+        for row in from_json("db/data/venues.json")
+    ]
+    await conn.execute(CREATE_VENUES_TABLE)
+    await conn.executemany(
+        "INSERT INTO venues (name, address, capacity) VALUES($1, $2, $3)", venues
+    )
+
+
+async def seed_data():
+    async with ConnectToDB() as conn:
+        await seed_users(conn)
+        await seed_venues(conn)
+
+
+asyncio.run(seed_data())
