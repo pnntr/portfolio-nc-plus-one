@@ -17,7 +17,7 @@ CREATE TABLE users (
 	email VARCHAR(255) UNIQUE NOT NULL,
 	password VARCHAR(255) NOT NULL,
 	name VARCHAR(255) NOT NULL,
-	created_at TIMESTAMP DEFAULT NOW()
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 """
 
@@ -37,11 +37,11 @@ CREATE TABLE events (
 	event_id SERIAL PRIMARY KEY,
 	title VARCHAR(255) NOT NULL,
 	description VARCHAR(255),
-	starts_at TIMESTAMP NOT NULL,
-	ends_at TIMESTAMP NOT NULL,
+	starts_at TIMESTAMP WITH TIME ZONE NOT NULL,
+	ends_at TIMESTAMP WITH TIME ZONE NOT NULL,
 	organiser_id INT REFERENCES users(user_id),
 	venue_id INT REFERENCES venues(venue_id),
-	created_at TIMESTAMP DEFAULT NOW()
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 """
 
@@ -51,7 +51,7 @@ CREATE TABLE rsvps (
 	rsvp_id SERIAL PRIMARY KEY,
 	attendee_id INT REFERENCES users(user_id),
 	event_id INT REFERENCES events(event_id),
-	created_at TIMESTAMP DEFAULT NOW()
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 """
 
@@ -102,8 +102,8 @@ async def seed_events(conn: asyncpg.Connection):
         (
             row["title"],
             row["description"],
-            dt.fromisoformat(row["starts_at"]).replace(tzinfo=None),
-            dt.fromisoformat(row["ends_at"]).replace(tzinfo=None),
+            dt.fromisoformat(row["starts_at"]),
+            dt.fromisoformat(row["ends_at"]),
             row["organiser_id"],
             row["venue_id"],
         )
