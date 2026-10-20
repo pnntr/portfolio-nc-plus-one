@@ -132,6 +132,3 @@ async def seed_data():
         await seed_venues(conn)
         await seed_events(conn)
         await seed_rsvps(conn)
-
-
-asyncio.run(seed_data())
