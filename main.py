@@ -2,10 +2,12 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
 
+from src.routes.auth import router as auth_router
 from src.routes.events import router as event_router
 
 app = FastAPI(title="NC Plus One events booking API", debug=True)
 app.include_router(event_router)
+app.include_router(auth_router)
 
 
 @app.exception_handler(HTTPException)
