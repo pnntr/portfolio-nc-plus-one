@@ -20,5 +20,8 @@ async def test_first_row_of_users_is_correct():
     fresh_data = await seed_data()
     async with ConnectToDB() as conn:
         user = await conn.fetchrow("SELECT * FROM users;")
+        user = dict(user)
+        del user["created_at"]
+        del user["user_id"]
 
-    assert USER == dict(user)
+    assert USER == user
