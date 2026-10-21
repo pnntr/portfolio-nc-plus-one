@@ -15,7 +15,7 @@ def handle_http_exception(request: Request, exc: HTTPException):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    return JSONResponse(status_code=422, content={"error": exc.errors()})
+    return JSONResponse(status_code=400, content={"error": exc.errors()})
 
 
 @app.exception_handler(Exception)
