@@ -1,6 +1,6 @@
 import pytest
 
-from db.utils import ConnectToDB, seed_data
+from db.utils import ConnectToDB, pwd_context, seed_data
 
 
 @pytest.mark.asyncio
@@ -20,8 +20,14 @@ async def test_first_row_of_users_is_correct():
     fresh_data = await seed_data()
     async with ConnectToDB() as conn:
         user = await conn.fetchrow("SELECT * FROM users;")
+        assert user is not None
         user = dict(user)
         del user["created_at"]
         del user["user_id"]
 
+    password = user["password"]
+    assert pwd_context.verify(USER["password"], password)
+
+    del user["password"]
+    del USER["password"]
     assert USER == user
