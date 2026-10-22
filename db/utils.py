@@ -4,9 +4,13 @@ from contextlib import asynccontextmanager
 from datetime import UTC
 from datetime import datetime as dt
 from datetime import timezone
+from typing import Dict, Tuple
 
 import asyncpg
 from dotenv import dotenv_values
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 DATABASE_NAME = dotenv_values(".env")["DATABASE_NAME"]
 
@@ -75,11 +79,16 @@ def from_json(filename: str):
         return json.load(f)
 
 
+def parse_user(row: Dict) -> Tuple[str, str, str] | None:
+    return (
+        row["name"],
+        row["email"],
+        pwd_context.hash(row["password"]),
+    )
+
+
 async def seed_users(conn: asyncpg.Connection):
-    users = [
-        (row["name"], row["email"], row["password"])
-        for row in from_json("db/data/users.json")
-    ]
+    users = [parse_user(row) for row in from_json("db/data/users.json")]
     await conn.execute(CREATE_USER_TABLE)
     await conn.executemany(
         "INSERT INTO users (name, email, password) VALUES($1, $2, $3)", users
