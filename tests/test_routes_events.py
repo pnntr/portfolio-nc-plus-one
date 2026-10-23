@@ -259,6 +259,59 @@ async def test_patch_event_id_403_non_organiser_tries_to_patch(client):
 
 
 @pytest.mark.asyncio
+async def test_get_event_attendees_200(client):
+    jwt, user_id = login(client)
+    event_id = 1
+
+    res = client.get(
+        f"/events/{event_id}/attendees", headers={"Authorization": f"Bearer {jwt}"}
+    )
+    assert res.status_code == 200
+
+    attendees = {
+        "attendees": [
+            {"id": 2, "name": "Bob Nguyen", "email": "bob@example.com"},
+            {"id": 3, "name": "Carol Singh", "email": "carol@example.com"},
+            {"id": 4, "name": "David Okafor", "email": "david@example.com"},
+            {"id": 5, "name": "Eve Martinez", "email": "eve@example.com"},
+        ]
+    }
+    assert res.json() == attendees
+
+
+@pytest.mark.asyncio
+async def test_get_event_attendees_401_no_token(client):
+    event_id = 1
+
+    res = client.get(
+        f"/events/{event_id}/attendees", headers={"Authorization": f"Bearer updog"}
+    )
+    assert res.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_event_attendees_403_non_organiser_cannot_edit_event(client):
+    jwt, user_id = login(client)
+    event_id = 2
+
+    res = client.get(
+        f"/events/{event_id}/attendees", headers={"Authorization": f"Bearer {jwt}"}
+    )
+    assert res.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_event_attendees_404_event_not_found(client):
+    jwt, user_id = login(client)
+    event_id = -1
+
+    res = client.get(
+        f"/events/{event_id}/attendees", headers={"Authorization": f"Bearer {jwt}"}
+    )
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_post_rsvp_to_event_id_201(client):
     event_id = 1
     jwt, user_id = login(client)

@@ -175,7 +175,11 @@ async def patch_event_id(
         )
         if found_event is None:
             raise default_404_exception("Event")
-        is_organiser = await conn.fetchrow("SELECT * FROM events WHERE event_id = $1 AND organiser_id = $2", id, user_id,)
+        is_organiser = await conn.fetchrow(
+            "SELECT * FROM events WHERE event_id = $1 AND organiser_id = $2",
+            id,
+            user_id,
+        )
         if is_organiser is None:
             raise HTTPException(403)
 
@@ -210,6 +214,37 @@ async def patch_event_id(
     del new_event["event_id"]
 
     return {"event": new_event}
+
+
+@router.get("/{id}/attendees")
+async def get_event_id_attendees(
+    id: int, user_id: Annotated[int, Depends(get_current_user_id)]
+):
+    async with ConnectToDB() as conn:
+        found_event = await conn.fetchrow("SELECT * FROM rsvps WHERE event_id = $1", id)
+        if found_event is None:
+            raise default_404_exception("Event")
+
+        is_organiser = await conn.fetchval(
+            """SELECT r.event_id FROM rsvps as r JOIN events as e ON r.event_id = e.event_id WHERE e.event_id = $1 AND e.organiser_id = $2""",
+            id,
+            user_id,
+        )
+        print(is_organiser, id, user_id)
+        if is_organiser is None:
+            raise HTTPException(403)
+
+        attendees = await conn.fetch(
+            """WITH rsvps_for_event AS (
+                    SELECT attendee_id FROM rsvps WHERE event_id = $1
+                )
+                SELECT user_id as id, name, email
+                FROM users
+                JOIN rsvps_for_event as r ON user_id = r.attendee_id
+            """,
+            id,
+        )
+    return {"attendees": [dict(a) for a in attendees]}
 
 
 @router.post("/{id}/rsvp", status_code=201)
