@@ -90,7 +90,7 @@ async def test_get_events_id_where_id_not_found(client):
 
 @pytest.mark.asyncio
 async def test_post_rsvp_to_event_id_201(client):
-    event_id = 2
+    event_id = 1
     jwt, user_id = login(client)
     res = client.post(
         f"/events/{event_id}/rsvp", headers={"Authorization": f"Bearer {jwt}"}
@@ -123,7 +123,7 @@ async def test_post_rsvp_to_event_id_404_no_event(client):
 
 
 @pytest.mark.asyncio
-async def test_post_rsvp_to_event_id_201(client):
+async def test_post_rsvp_to_event_id_409_already_rsvpd(client):
     event_id = 1
     jwt, user_id = login(client)
     res = client.post(
@@ -137,3 +137,39 @@ async def test_post_rsvp_to_event_id_201(client):
     assert res.status_code == 409
 
     await clear_rsvps(user_id, event_id)
+
+
+@pytest.mark.asyncio
+async def test_delete_rsvp_to_event_id_204(client):
+    event_id = 1
+    jwt, _ = login(client)
+    headers = {"Authorization": f"Bearer {jwt}"}
+    res = client.post(f"/events/{event_id}/rsvp", headers=headers)
+    assert res.status_code == 201
+
+    res = client.delete(f"/events/{event_id}/rsvp/me", headers=headers)
+    assert res.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_delete_rsvp_to_event_id_invalid_jwt_401(client):
+    event_id = 1
+    jwt, _ = login(client)
+    headers = {"Authorization": f"Bearer updog"}
+    res = client.post(f"/events/{event_id}/rsvp", headers=headers)
+    assert res.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_delete_rsvp_to_event_id_double_delete_404(client):
+    event_id = 1
+    jwt, _ = login(client)
+    headers = {"Authorization": f"Bearer {jwt}"}
+    res = client.post(f"/events/{event_id}/rsvp", headers=headers)
+    assert res.status_code == 201
+
+    res = client.delete(f"/events/{event_id}/rsvp/me", headers=headers)
+    assert res.status_code == 204
+
+    res = client.delete(f"/events/{event_id}/rsvp/me", headers=headers)
+    assert res.status_code == 404

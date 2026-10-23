@@ -96,3 +96,25 @@ async def post_rsvp_to_event_id(
         raise HTTPException(500)
 
     return {"rsvp": dict(rsvp)}
+
+
+@router.delete("/{id}/rsvp/me", status_code=204)
+async def delete_rsvp_to_event_id(
+    id: int,
+    user_id: Annotated[int, Depends(get_current_user_id)],
+):
+    """Delete a rsvp for an event that I (the user) have rsvp'd to"""
+    async with ConnectToDB() as conn:
+        already_exists = await conn.fetchrow(
+            "SELECT * FROM rsvps WHERE event_id = $1 AND attendee_id = $2",
+            user_id,
+            id,
+        )
+        if already_exists is None:
+            raise default_404_exception("RSVP")
+
+        await conn.execute(
+            "DELETE FROM rsvps WHERE event_id = $1 AND attendee_id = $2",
+            id,
+            user_id,
+        )
