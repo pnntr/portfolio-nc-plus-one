@@ -51,13 +51,44 @@ async def test_post_register_user_missing_field(client):
     user = client.post("/auth/register", json=dummy)
     assert user.status_code == 400
 
-# FIX: for some reason it doesn't like raw json
+
 @pytest.mark.asyncio
 async def test_post_login_200(client):
     user = client.post("/auth/register", json=DUMMY_USER)
     assert user.status_code == 201
 
     form = {"username": DUMMY_USER["email"], "password": DUMMY_USER["password"]}
-    token = client.post("/auth/login", json=form)
+    token = client.post("/auth/login", data=form)
     assert token.status_code == 200
-    assert "token" in token.json()
+    assert "access_token" in token.json()
+    assert token.json()["token_type"] == "bearer"
+
+
+@pytest.mark.asyncio
+async def test_post_login_400_missing_username(client):
+    user = client.post("/auth/register", json=DUMMY_USER)
+    assert user.status_code == 201
+
+    form = {"password": DUMMY_USER["password"]}
+    token = client.post("/auth/login", data=form)
+    assert token.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_post_login_400_missing_password(client):
+    user = client.post("/auth/register", json=DUMMY_USER)
+    assert user.status_code == 201
+
+    form = {"username": DUMMY_USER["email"]}
+    token = client.post("/auth/login", data=form)
+    assert token.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_post_login_401_user_not_found_in_db(client):
+    user = client.post("/auth/register", json=DUMMY_USER)
+    assert user.status_code == 201
+
+    form = {"username": "non@existant.com", "password": DUMMY_USER["password"]}
+    token = client.post("/auth/login", data=form)
+    assert token.status_code == 401
