@@ -175,6 +175,9 @@ async def patch_event_id(
         )
         if found_event is None:
             raise default_404_exception("Event")
+        is_organiser = await conn.fetchrow("SELECT * FROM events WHERE event_id = $1 AND organiser_id = $2", id, user_id,)
+        if is_organiser is None:
+            raise HTTPException(403)
 
         # NOTE: doing update in a transaction so that a user update is
         # either applied or aborted but not partially applied

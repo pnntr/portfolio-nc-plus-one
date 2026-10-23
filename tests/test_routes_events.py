@@ -244,8 +244,18 @@ async def test_patch_event_id_400_end_before_start_time(client):
     await clear_events(event_id)
 
 
-# TODO: test non-organizer trying to edit
-# TODO: test end before start time
+@pytest.mark.asyncio
+async def test_patch_event_id_403_non_organiser_tries_to_patch(client):
+    headers, _ = event(client)
+    update_data = {
+        "description": "Updated description, now with live music!",
+        "starts_at": "2025-08-16T19:00:00Z",
+        "ends_at": "2025-08-16T23:00:00Z",
+    }
+    # NOTE: check seed data to verify that event_id=2
+    # is not owned by user_id=1
+    res = client.patch(f"/events/{2}", headers=headers, json=update_data)
+    assert res.status_code == 403
 
 
 @pytest.mark.asyncio
