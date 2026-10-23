@@ -80,7 +80,15 @@ async def post_register_user(register: RegisterRequest):
                 encrypted,
             )
         except UniqueViolationError:
-            raise HTTPException(409)
+            raise HTTPException(
+                409,
+                {
+                    "details": {
+                        "error": "CONFLICT",
+                        "message": "Email already is taken by another account",
+                    }
+                },
+            )
 
     if user is None:
         raise HTTPException(500)

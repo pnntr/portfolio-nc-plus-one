@@ -51,6 +51,11 @@ async def test_post_register_user_missing_field(client):
     user = client.post("/auth/register", json=dummy)
     assert user.status_code == 400
 
+    dummy = DUMMY_USER.copy()
+    del dummy["password"]
+    user = client.post("/auth/register", json=dummy)
+    assert user.status_code == 400
+
 
 @pytest.mark.asyncio
 async def test_post_login_200(client):
