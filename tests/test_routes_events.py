@@ -17,6 +17,20 @@ def login(client: TestClient):
     return token.json()["access_token"], 1
 
 
+def event(client: TestClient):
+    jwt, _ = login(client)
+    headers = {"Authorization": f"Bearer {jwt}"}
+    event_data = {
+        "title": "Summer Rooftop Social",
+        "description": "An evening of networking and good vibes.",
+        "starts_at": "2025-08-15T18:00:00Z",
+        "ends_at": "2025-08-15T21:00:00Z",
+        "venue_id": 2,
+    }
+
+    return headers, event_data
+
+
 async def clear_rsvps(attendee_id, event_id):
     async with ConnectToDB() as conn:
         await conn.execute(
@@ -24,6 +38,11 @@ async def clear_rsvps(attendee_id, event_id):
             attendee_id,
             event_id,
         )
+
+
+async def clear_events(event_id):
+    async with ConnectToDB() as conn:
+        await conn.execute("DELETE FROM events WHERE event_id = $1", event_id)
 
 
 @pytest.mark.asyncio
@@ -44,6 +63,41 @@ async def test_get_events_first_event_location_is_named(client):
     data = res.json()
     assert "events" in data
     assert data["events"][0]["location"] == "Nexus, University of Leeds"
+
+
+@pytest.mark.asyncio
+async def test_post_events_201(client):
+    headers, event_data = event(client)
+    res = client.post("/events", headers=headers, json=event_data)
+    assert res.status_code == 201
+
+    data = res.json()["event"]
+
+    await clear_events(data["id"])
+
+
+@pytest.mark.asyncio
+async def test_post_events_401_unauthenticated(client):
+    headers, event_data = event(client)
+    res = client.post("/events", headers={}, json=event_data)
+    assert res.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_post_events_400_missing_fields(client):
+    headers, event_data = event(client)
+    del event_data["title"]
+    res = client.post("/events", headers=headers, json=event_data)
+    assert res.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_post_events_400_wrong_datetime_format(client):
+    headers, event_data = event(client)
+    # NOTE: added extra 'T's in datetime string to test
+    event_data["ends_at"] = "2026-10-23TTT06:08:37+00:00 UTC+00:00"
+    res = client.post("/events", headers=headers, json=event_data)
+    assert res.status_code == 400
 
 
 @pytest.mark.asyncio

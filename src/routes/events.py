@@ -1,7 +1,9 @@
+import datetime
 from typing import Annotated
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from db.utils import ConnectToDB
 from src.routes.auth import get_current_user_id
@@ -15,6 +17,14 @@ def default_404_message(name_of_item: str):
 
 def default_404_exception(name_of_item: str):
     return HTTPException(404, detail=default_404_message(name_of_item))
+
+
+class EventsPostRequest(BaseModel):
+    title: str
+    description: str
+    starts_at: datetime.datetime
+    ends_at: datetime.datetime
+    venue_id: int
 
 
 @router.get("/")
@@ -44,6 +54,33 @@ async def get_events():
             for row in rows
         ]
     }
+
+
+@router.post("/", status_code=201)
+async def post_events(
+    user_id: Annotated[int, Depends(get_current_user_id)],
+    request_params: EventsPostRequest,
+):
+    """Post a event as a given user"""
+    async with ConnectToDB() as conn:
+        event = await conn.fetchrow(
+            """INSERT INTO events (title, description, starts_at, ends_at, venue_id, organiser_id)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *""",
+            request_params.title,
+            request_params.description,
+            request_params.starts_at,
+            request_params.ends_at,
+            request_params.venue_id,
+            user_id,
+        )
+
+    assert event is not None
+    event = dict(event)
+
+    event["id"] = event["event_id"]
+    del event["event_id"]
+
+    return {"event": event}
 
 
 @router.get("/{id}")
