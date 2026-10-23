@@ -118,7 +118,6 @@ async def post_login_user(form: Annotated[OAuth2PasswordRequestForm, Depends()])
         )
 
     stored_password, user_id = tuple(res)
-    print(tuple(res), stored_password, pwd_context.hash(form.password))
 
     if not pwd_context.verify(form.password, stored_password):
         raise HTTPException(

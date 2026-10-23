@@ -1,12 +1,20 @@
-from fastapi import APIRouter, HTTPException
+from typing import Annotated
+
+import asyncpg
+from fastapi import APIRouter, Depends, HTTPException
 
 from db.utils import ConnectToDB
+from src.routes.auth import get_current_user_id
 
 router = APIRouter(prefix="/events", tags=["events"])
 
 
 def default_404_message(name_of_item: str):
     return {"detail": {"status": f"{name_of_item} NOT FOUND"}}
+
+
+def default_404_exception(name_of_item: str):
+    return HTTPException(404, detail=default_404_message(name_of_item))
 
 
 @router.get("/")
@@ -52,6 +60,39 @@ async def get_event_id(id: int):
             id,
         )
     if row is None:
-        raise HTTPException(404, default_404_message("Event"))
+        raise default_404_exception("Event")
 
     return {"event": row}
+
+
+@router.post("/{id}/rsvp", status_code=201)
+async def post_rsvp_to_event_id(
+    id: int,
+    user_id: Annotated[int, Depends(get_current_user_id)],
+):
+    """Post an rsvp record according to the logged in user id"""
+
+    async with ConnectToDB() as conn:
+        already_exists = await conn.fetchrow(
+            "SELECT * FROM rsvps WHERE event_id = $1 AND attendee_id = $2",
+            user_id,
+            id,
+        )
+        if already_exists is not None:
+            raise HTTPException(
+                409, detail={"error": {"message": "already RSVP'd to event"}}
+            )
+
+        try:
+            rsvp = await conn.fetchrow(
+                "INSERT INTO rsvps (event_id, attendee_id) VALUES ($1, $2) RETURNING *",
+                id,
+                user_id,
+            )
+        except asyncpg.exceptions.ForeignKeyViolationError:
+            raise default_404_exception("Event")
+
+    if rsvp is None:
+        raise HTTPException(500)
+
+    return {"rsvp": dict(rsvp)}

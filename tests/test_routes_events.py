@@ -11,6 +11,21 @@ def client():
     return TestClient(app)
 
 
+def login(client: TestClient):
+    form = {"username": "alice@example.com", "password": "password123"}
+    token = client.post("/auth/login", data=form)
+    return token.json()["access_token"], 1
+
+
+async def clear_rsvps(attendee_id, event_id):
+    async with ConnectToDB() as conn:
+        await conn.execute(
+            "DELETE FROM rsvps WHERE attendee_id = $1 AND event_id = $2",
+            attendee_id,
+            event_id,
+        )
+
+
 @pytest.mark.asyncio
 async def test_get_events_successfully_returns_all_events(client):
     res = client.get("/events/")
@@ -71,3 +86,54 @@ async def test_get_events_id_where_id_not_found(client):
     assert res.status_code == 404
     data = res.json()
     assert data == {"error": default_404_message("Event")}
+
+
+@pytest.mark.asyncio
+async def test_post_rsvp_to_event_id_201(client):
+    event_id = 2
+    jwt, user_id = login(client)
+    res = client.post(
+        f"/events/{event_id}/rsvp", headers={"Authorization": f"Bearer {jwt}"}
+    )
+    assert res.status_code == 201
+
+    data = res.json()["rsvp"]
+    assert data["attendee_id"] == user_id
+    assert data["event_id"] == event_id
+
+    await clear_rsvps(user_id, event_id)
+
+
+@pytest.mark.asyncio
+async def test_post_rsvp_to_event_id_401_missing_token(client):
+    event_id = 2
+    jwt, user_id = login(client)
+    res = client.post(f"/events/{event_id}/rsvp")
+    assert res.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_post_rsvp_to_event_id_404_no_event(client):
+    event_id = -1
+    jwt, user_id = login(client)
+    res = client.post(
+        f"/events/{event_id}/rsvp", headers={"Authorization": f"Bearer {jwt}"}
+    )
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_post_rsvp_to_event_id_201(client):
+    event_id = 1
+    jwt, user_id = login(client)
+    res = client.post(
+        f"/events/{event_id}/rsvp", headers={"Authorization": f"Bearer {jwt}"}
+    )
+    assert res.status_code == 201
+
+    res = client.post(
+        f"/events/{event_id}/rsvp", headers={"Authorization": f"Bearer {jwt}"}
+    )
+    assert res.status_code == 409
+
+    await clear_rsvps(user_id, event_id)
