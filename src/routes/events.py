@@ -19,12 +19,60 @@ def default_404_exception(name_of_item: str):
     return HTTPException(404, detail=default_404_message(name_of_item))
 
 
+async def raise_error_if_start_after_end_time(
+    start: datetime.datetime | None, end: datetime.datetime | None, event_id: int | None
+):
+    start_before_end_exception = HTTPException(
+        400,
+        detail={
+            "error": {
+                "status": "Bad input",
+                "message": "Start time cannot be before end time",
+            }
+        },
+    )
+
+    if start is None and end is None:
+        return
+
+    if start is not None and end is not None:
+        if start > end:
+            raise start_before_end_exception
+        return
+
+    # NOTE: if creating an event don't go down this
+    assert event_id is not None
+
+    if start is None:
+        async with ConnectToDB() as conn:
+            start = await conn.fetchrow(
+                "SELECT starts_at FROM events WHERE event_id = $1",
+                event_id,
+            )
+    else:
+        async with ConnectToDB() as conn:
+            end = await conn.fetchrow(
+                "SELECT ends_at FROM events WHERE event_id = $1",
+                event_id,
+            )
+
+    assert start is not None and end is not None
+    if start > end:
+        raise start_before_end_exception
+
+
 class EventsPostRequest(BaseModel):
     title: str
     description: str
     starts_at: datetime.datetime
     ends_at: datetime.datetime
     venue_id: int
+
+
+class EventPatchRequest(BaseModel):
+    description: str | None = None
+    starts_at: datetime.datetime | None = None
+    ends_at: datetime.datetime | None = None
 
 
 @router.get("/")
@@ -62,6 +110,13 @@ async def post_events(
     request_params: EventsPostRequest,
 ):
     """Post a event as a given user"""
+
+    await raise_error_if_start_after_end_time(
+        request_params.starts_at,
+        request_params.ends_at,
+        None,
+    )
+
     async with ConnectToDB() as conn:
         event = await conn.fetchrow(
             """INSERT INTO events (title, description, starts_at, ends_at, venue_id, organiser_id)
@@ -100,6 +155,58 @@ async def get_event_id(id: int):
         raise default_404_exception("Event")
 
     return {"event": row}
+
+
+@router.patch("/{id}", status_code=200)
+async def patch_event_id(
+    id: int,
+    user_id: Annotated[int, Depends(get_current_user_id)],
+    request_params: EventPatchRequest,
+):
+    await raise_error_if_start_after_end_time(
+        request_params.starts_at,
+        request_params.ends_at,
+        id,
+    )
+
+    async with ConnectToDB() as conn:
+        found_event = await conn.fetchrow(
+            "SELECT * FROM events WHERE event_id = $1", id
+        )
+        if found_event is None:
+            raise default_404_exception("Event")
+
+        # NOTE: doing update in a transaction so that a user update is
+        # either applied or aborted but not partially applied
+        async with conn.transaction():
+            if request_params.description is not None:
+                await conn.execute(
+                    "UPDATE events SET description = $1 WHERE event_id = $2",
+                    request_params.description,
+                    id,
+                )
+            if request_params.starts_at is not None:
+                await conn.execute(
+                    "UPDATE events SET starts_at = $1 WHERE event_id = $2",
+                    request_params.starts_at,
+                    id,
+                )
+            if request_params.ends_at is not None:
+                await conn.execute(
+                    "UPDATE events SET starts_at = $1 WHERE event_id = $2",
+                    request_params.starts_at,
+                    id,
+                )
+
+        new_event = await conn.fetchrow("SELECT * FROM events WHERE event_id = $1", id)
+
+    assert new_event is not None
+    new_event = dict(new_event)
+
+    new_event["id"] = new_event["event_id"]
+    del new_event["event_id"]
+
+    return {"event": new_event}
 
 
 @router.post("/{id}/rsvp", status_code=201)

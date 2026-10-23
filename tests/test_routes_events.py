@@ -100,6 +100,17 @@ async def test_post_events_400_wrong_datetime_format(client):
     assert res.status_code == 400
 
 
+# TODO: test if end is after start
+@pytest.mark.asyncio
+async def test_post_events_400_start_after_end_time(client):
+    headers, event_data = event(client)
+    # NOTE: added extra 'T's in datetime string to test
+    event_data["starts_at"] = "2025-08-15T13:00:00Z"
+    event_data["ends_at"] = "2025-08-15T12:00:00Z"
+    res = client.post("/events", headers=headers, json=event_data)
+    assert res.status_code == 400
+
+
 @pytest.mark.asyncio
 async def test_get_events_id_success_on_found_id(client):
     res = client.get("/events/2")
@@ -140,6 +151,101 @@ async def test_get_events_id_where_id_not_found(client):
     assert res.status_code == 404
     data = res.json()
     assert data == {"error": default_404_message("Event")}
+
+
+@pytest.mark.asyncio
+async def test_patch_event_id_200_all_fields(client):
+    headers, event_data = event(client)
+    res = client.post("/events", headers=headers, json=event_data)
+    assert res.status_code == 201
+
+    event_id = res.json()["event"]["id"]
+    old_data = res.json()
+
+    update_data = {
+        "description": "Updated description, now with live music!",
+        "starts_at": "2025-08-16T19:00:00Z",
+        "ends_at": "2025-08-16T23:00:00Z",
+    }
+    res = client.patch(f"/events/{event_id}", headers=headers, json=update_data)
+    assert res.status_code == 200
+    assert res.json() != old_data
+
+    await clear_events(event_id)
+
+
+@pytest.mark.asyncio
+async def test_patch_event_id_200_some_missing(client):
+    headers, event_data = event(client)
+    res = client.post("/events", headers=headers, json=event_data)
+    assert res.status_code == 201
+
+    event_id = res.json()["event"]["id"]
+    old_data = res.json()
+
+    update_data = {
+        "description": "Updated description, now with live music!",
+    }
+    res = client.patch(f"/events/{event_id}", headers=headers, json=update_data)
+    assert res.status_code == 200
+    assert res.json() != old_data
+
+    await clear_events(event_id)
+
+
+@pytest.mark.asyncio
+async def test_patch_event_id_200_all_missing(client):
+    headers, event_data = event(client)
+    res = client.post("/events", headers=headers, json=event_data)
+    assert res.status_code == 201
+
+    event_id = res.json()["event"]["id"]
+    old_data = res.json()
+
+    update_data = {}
+    res = client.patch(f"/events/{event_id}", headers=headers, json=update_data)
+    assert res.status_code == 200
+    assert res.json() == old_data
+
+    await clear_events(event_id)
+
+
+@pytest.mark.asyncio
+async def test_patch_event_id_404_event_not_found(client):
+    headers, _ = event(client)
+    event_id = -1
+
+    update_data = {
+        "description": "Updated description, now with live music!",
+        "starts_at": "2025-08-16T19:00:00Z",
+        "ends_at": "2025-08-16T23:00:00Z",
+    }
+    res = client.patch(f"/events/{event_id}", headers=headers, json=update_data)
+    assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_patch_event_id_400_end_before_start_time(client):
+    headers, event_data = event(client)
+    res = client.post("/events", headers=headers, json=event_data)
+    assert res.status_code == 201
+
+    event_id = res.json()["event"]["id"]
+    old_data = res.json()
+
+    update_data = {
+        "description": "Updated description, now with live music!",
+        "starts_at": "2025-08-16T19:00:00Z",
+        "ends_at": "2025-08-16T12:00:00Z",
+    }
+    res = client.patch(f"/events/{event_id}", headers=headers, json=update_data)
+    assert res.status_code == 400
+
+    await clear_events(event_id)
+
+
+# TODO: test non-organizer trying to edit
+# TODO: test end before start time
 
 
 @pytest.mark.asyncio
