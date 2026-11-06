@@ -12,7 +12,6 @@ jobs:
     env:
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
-      DB_USER: runner
       DB_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
       DB_DB: nc_plus_one
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
@@ -43,8 +42,6 @@ jobs:
 
       - name: setup seed database
         run: |
-          sudo -u postgres createuser --createdb runner
-          sudo -u postgres createdb --owner=runner nc_plus_one
           psql -c "CREATE DATABASE nc_plus_one;"
           make seed-db
 
