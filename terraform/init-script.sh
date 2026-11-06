@@ -77,14 +77,17 @@ DB_USER=$(echo "$SECRET" | jq -r '.username')
 DB_PASSWORD=$(echo "$SECRET" | jq -r '.password')
 DB_HOST=$DB_HOST
 DB_PORT="5432"
-DB_DB="toy"
+DB_DB="nc_plus_one"
 
 cat > .env <<EOF
 DB_USER=$(echo "$SECRET" | jq -r '.username')
 DB_PASSWORD=$(echo "$SECRET" | jq -r '.password')
 DB_HOST=$DB_HOST
 DB_PORT="5432"
-DB_DB="toy"
+DB_DB="nc_plus_one"
+
+# env for server
+JWT_SECRET=${JWT_SECRET}
 EOF
 
 chmod 600 .env
@@ -103,5 +106,4 @@ echo "Seeding database"
 python db/utils.py
 
 echo "Starting application..."
-
 exec uvicorn main:app

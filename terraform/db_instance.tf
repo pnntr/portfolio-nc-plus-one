@@ -10,7 +10,7 @@ resource "aws_db_instance" "postgres" {
   instance_class       = "db.t3.micro"
 
   # DB settings
-  db_name              = "toy"
+  db_name              = "nc_plus_one"
   username             = "toy"
   manage_master_user_password = true
 
