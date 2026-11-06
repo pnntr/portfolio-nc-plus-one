@@ -12,7 +12,12 @@ from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-DATABASE_NAME = dotenv_values(".env")["DATABASE_NAME"]
+config = dotenv_values(".env")
+DB_HOST = config["DB_HOST"]
+DB_PORT = config["DB_PORT"]
+DB_USER = config["DB_USER"]
+DB_PASSWORD = config["DB_PASSWORD"]
+DB_DB = config["DB_DB"]
 
 CREATE_USER_TABLE = """
 DROP TABLE IF EXISTS users CASCADE;
@@ -65,7 +70,13 @@ class ConnectToDB:
         self.conn: asyncpg.Connection | None = None
 
     async def __aenter__(self) -> asyncpg.Connection:
-        self.conn = await asyncpg.connect(database=DATABASE_NAME)
+        self.conn = await asyncpg.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_DB,
+        )
         assert self.conn is not None
         return self.conn
 
