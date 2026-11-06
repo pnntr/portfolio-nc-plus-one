@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DB_HOST: 127.0.0.1
-      DB_USER: runner
       DB_PORT: 5432
+      DB_USER: postgres
       DB_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
       DB_DB: nc_plus_one
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
@@ -43,8 +43,8 @@ jobs:
 
       - name: setup seed database
         run: |
-          sudo -u postgres psql -d postgres -c "CREATE ROLE runner LOGIN CREATEDB;"
-          sudo -u postgres createdb --owner=runner nc_plus_one
+          sudu -u postgres psql -c "ALTER USER postgres PASSWORD ${{ secrets.DATABASE_PASSWORD }}"
+          sudo -u postgres createdb nc_plus_one
           make seed-db
 
       - name: run checks
