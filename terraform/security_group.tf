@@ -10,7 +10,7 @@ resource "aws_security_group" "allow_ssh" {
 
 resource "aws_vpc_security_group_ingress_rule" "allow_ssh_ingress" {
   security_group_id = aws_security_group.allow_ssh.id
-  cidr_ipv4         = "${local.ifconfig_co_json.ip}/32"
+  cidr_ipv4         = "${local.my_ip}/32"
   from_port         = 22
   to_port           = 22
   ip_protocol       = "tcp"
@@ -34,7 +34,7 @@ resource "aws_security_group" "allow_http" {
 
 resource "aws_vpc_security_group_ingress_rule" "allow_http_ingress" {
   security_group_id = aws_security_group.allow_http.id
-  cidr_ipv4         = "${local.ifconfig_co_json.ip}/32"
+  cidr_ipv4         = "${local.my_ip}/32"
   from_port         = 80
   to_port           = 80
   ip_protocol       = "tcp"

@@ -31,3 +31,6 @@ data "http" "my_public_ip" {
 # output "my_ip_addr" {
 #   value = local.ifconfig_co_json.ip
 # }
+locals {
+  my_ip = "149.40.105.34"
+}
