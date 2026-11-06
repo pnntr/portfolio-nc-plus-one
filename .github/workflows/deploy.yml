@@ -13,7 +13,7 @@ jobs:
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
       DB_USER: postgres
-      DB_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+      DB_PASSWORD: postgres
       DB_DB: nc_plus_one
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
@@ -43,7 +43,7 @@ jobs:
 
       - name: setup seed database
         run: |
-          sudo -u postgres psql -c "ALTER USER postgres PASSWORD ${{ secrets.DATABASE_PASSWORD }}"
+          sudo -u postgres psql -c "ALTER USER postgres PASSWORD postgres"
           sudo -u postgres createdb nc_plus_one
           make seed-db
 
