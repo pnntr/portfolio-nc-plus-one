@@ -9,6 +9,13 @@ jobs:
   run-tests:
     name: run tests
     runs-on: ubuntu-latest
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USER: runner
+      DB_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+      DB_DB: nc_plus_one
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     steps:
       - name: checkout repo
@@ -27,29 +34,15 @@ jobs:
         run: |
           make dev-setup
 
-      - uses: ikalnytskyi/action-setup-postgres@v9
-        with:
-          username: ci
-          password: ${{ secrets.DATABASE_PASSWORD }}
-          database: nc_plus_one
-          port: 5432
-          postgres-version: "14"
-          ssl: false
-        id: postgres
-
-      - name: create test .env
+      - name: install postgres locally
         run: |
-          cat > .env <<'EOF'
-          DB_HOST=localhost
-          DB_PORT=5432
-          DB_USER=ci
-          DB_PASSWORD=${{ secrets.DATABASE_PASSWORD }}
-          DB_DB=nc_plus_one
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          EOF
+          sudo apt update && apt install postgresql -y |
+          sudo systemctl start postrgresql |
+          pg_isready
 
       - name: setup seed database
         run: |
+          psql -c "CREATE DATABASE nc_plus_one;" |
           make seed-db
 
       - name: run checks
