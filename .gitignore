@@ -2,3 +2,5 @@ venv
 .envrc
 .env
 __pycache__
+terraform/.terraform
+terraform/.terraform.lock.hcl
