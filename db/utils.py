@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 from contextlib import asynccontextmanager
 from datetime import UTC
 from datetime import datetime as dt
@@ -7,17 +8,17 @@ from datetime import timezone
 from typing import Dict, Tuple
 
 import asyncpg
-from dotenv import dotenv_values
+from dotenv import load_dotenv
 from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-config = dotenv_values(".env")
-DB_HOST = config["DB_HOST"]
-DB_PORT = config["DB_PORT"]
-DB_USER = config["DB_USER"]
-DB_PASSWORD = config["DB_PASSWORD"]
-DB_DB = config["DB_DB"]
+load_dotenv(".env")
+DB_HOST = os.environ["DB_HOST"]
+DB_PORT = os.environ["DB_PORT"]
+DB_USER = os.environ["DB_USER"]
+DB_PASSWORD = os.environ["DB_PASSWORD"]
+DB_DB = os.environ["DB_DB"]
 
 CREATE_USER_TABLE = """
 DROP TABLE IF EXISTS users CASCADE;
