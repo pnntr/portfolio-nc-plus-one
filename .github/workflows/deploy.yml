@@ -36,13 +36,14 @@ jobs:
 
       - name: install postgres locally
         run: |
-          sudo apt update && sudo apt install postgresql -y |
-          sudo systemctl start postrgresql |
+          sudo apt update
+          sudo apt install postgresql -y
+          sudo systemctl start postrgresql
           pg_isready
 
       - name: setup seed database
         run: |
-          psql -c "CREATE DATABASE nc_plus_one;" |
+          psql -c "CREATE DATABASE nc_plus_one;"
           make seed-db
 
       - name: run checks
