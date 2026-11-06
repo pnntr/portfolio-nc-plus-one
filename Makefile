@@ -55,6 +55,9 @@ coverage:
 dev-setup: bandit black coverage
 
 # Build / Run
+## Seed database
+seed-db:
+	$(call execute_in_env, PYTHONPATH=${PYTHONPATH} python db/utils.py)
 
 ## Run the security test (bandit)
 security-test:
@@ -74,3 +77,7 @@ check-coverage:
 
 ## Run all checks
 run-checks: security-test run-black unit-test check-coverage
+
+## Run server
+run-server:
+	$(call execute_in_env, PYTHONPATH=${PYTHONPATH} fastapi run)

@@ -32,7 +32,17 @@ apt update && sudo apt upgrade -y
 
 # General deps
 echo '[install] starting deps install' | systemd-cat -p info
-apt install -y git curl make iptables awscli jq python3.14-venv postgresql-client
+apt install -y \
+      git \
+      curl \
+      make \
+      iptables \
+      awscli \
+      jq \
+      python3.14-venv \
+      postgresql-client \
+      python-is-python3 \
+      python3-pip
 
 # Routing rules for web server
 echo '[install] starting iptables configuration' | systemd-cat -p info
@@ -87,7 +97,7 @@ DB_PORT="5432"
 DB_DB="nc_plus_one"
 
 # env for server
-JWT_SECRET=${JWT_SECRET}
+JWT_SECRET=$(python -c 'import secrets; print(secrets.token_hex(32))')
 EOF
 
 chmod 600 .env
@@ -95,15 +105,15 @@ chmod 600 .env
 unset SECRET
 
 echo "Creating database"
-PGPASSWORD="$DB_PASSWORD" psql \
-    -h "$DB_HOST" \
-    -p "$DB_PORT" \
-    -U "$DB_USER" \
-    -d "$DB_DB" \
-    -f src/data/seed.sql
+# PGPASSWORD="$DB_PASSWORD" psql \
+#     -h "$DB_HOST" \
+#     -p "$DB_PORT" \
+#     -U "$DB_USER" \
+#     -d "$DB_DB" \
+#     -f src/data/seed.sql
 
 echo "Seeding database"
-python db/utils.py
+make seed-db
 
 echo "Starting application..."
-exec uvicorn main:app
+exec make run-server
