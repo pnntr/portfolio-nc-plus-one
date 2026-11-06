@@ -43,7 +43,7 @@ jobs:
 
       - name: setup seed database
         run: |
-          sudu -u postgres psql -c "ALTER USER postgres PASSWORD ${{ secrets.DATABASE_PASSWORD }}"
+          sudo -u postgres psql -c "ALTER USER postgres PASSWORD ${{ secrets.DATABASE_PASSWORD }}"
           sudo -u postgres createdb nc_plus_one
           make seed-db
 
