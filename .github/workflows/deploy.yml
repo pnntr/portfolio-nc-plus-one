@@ -43,6 +43,8 @@ jobs:
 
       - name: setup seed database
         run: |
+          sudo -u postgres createuser --createdb runner
+          sudo -u postgres createdb --owner=runner nc_plus_one
           psql -c "CREATE DATABASE nc_plus_one;"
           make seed-db
 
